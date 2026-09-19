@@ -1,0 +1,17 @@
+Put these files in this folder (assets/):
+
+  profile.jpg            your photo, square, about 800x800 px, under 300 KB
+  cv.pdf                 your CV
+  favicon.svg            already here - change the letter "A" to your initial
+  project-1.jpg          optional project images, 16:9
+  project-2.jpg
+  fem-report.pdf(report)         optional linked PDFs
+  fem-project-reference-research-paper.pdf(reference paper) 
+  fem-presentation.pdf(presentation)
+  nonlocal-fem-feti1.m(code)  
+
+  thesis.pdf
+
+Keep the file names exactly as written above, or change the paths in index.html
+to match your own names. Names are case-sensitive on GitHub Pages: Profile.JPG
+will NOT load if the HTML says profile.jpg.
