@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8-Puzzle Solver</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #34495e;
+            color: white;
+            padding: 20px;
+            border-right: 3px solid #2c3e50;
+        }
+
+        .visualization {
+            flex: 1;
+            padding: 20px;
+            background: #ecf0f1;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-group h3 {
+            color: #3498db;
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .move-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .move-btn {
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .history {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #2c3e50;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .history-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: #34495e;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: #3498db;
+        }
+
+        .history-item.active {
+            background: #e74c3c;
+        }
+
+        .puzzle-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .puzzle-box {
+            text-align: center;
+        }
+
+        .puzzle-box h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+
+        .puzzle {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            grid-template-rows: repeat(3, 80px);
+            gap: 4px;
+            background: #2c3e50;
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .tile {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #3498db;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .tile.empty {
+            background: #ecf0f1;
+            color: transparent;
+            cursor: default;
+        }
+
+        .tile:hover:not(.empty) {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+
+        .info-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .info-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .info-content {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #34495e;
+        }
+
+        .message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .message.error {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .message.success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .algorithm-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #3498db;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 3px solid #2c3e50;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>8-Puzzle Solver</h1>
+            <p>Interactive puzzle solving with BFS and A* algorithms</p>
+        </div>
+        
+        <div class="content">
+            <!-- Left Sidebar -->
+            <div class="sidebar">
+                <!-- Manual Controls -->
+                <div class="control-group">
+                    <h3>Manual Moves</h3>
+                    <div class="move-buttons">
+                        <button class="btn move-btn" onclick="moveTile('up')">↑ Up</button>
+                        <button class="btn move-btn" onclick="moveTile('left')">← Left</button>
+                        <button class="btn move-btn" onclick="moveTile('right')">→ Right</button>
+                        <button class="btn move-btn" onclick="moveTile('down')">↓ Down</button>
+                    </div>
+                </div>
+
+                <!-- Algorithms -->
+                <div class="control-group">
+                    <h3>Algorithms</h3>
+                    <button class="btn btn-success" onclick="runBFS()">Run BFS</button>
+                    <button class="btn btn-success" onclick="runAStar()">Run A*</button>
+                </div>
+
+                <!-- Navigation -->
+                <div class="control-group">
+                    <h3>Navigation</h3>
+                    <button class="btn" onclick="previousStep()">Previous Step</button>
+                    <button class="btn" onclick="nextStep()">Next Step</button>
+                </div>
+
+                <!-- Reset -->
+                <div class="control-group">
+                    <button class="btn btn-danger" onclick="resetPuzzle()">Reset Puzzle</button>
+                </div>
+
+                <!-- History -->
+                <div class="control-group">
+                    <h3>Step History</h3>
+                    <div class="history" id="historyList">
+                        <!-- History items will be added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Visualization Area -->
+            <div class="visualization">
+                <!-- Puzzle Display -->
+                <div class="puzzle-container">
+                    <div class="puzzle-box">
+                        <h3>Current State</h3>
+                        <div class="puzzle" id="currentPuzzle">
+                            <!-- Current puzzle tiles will be added here -->
+                        </div>
+                    </div>
+                    <div class="puzzle-box">
+                        <h3>Goal State</h3>
+                        <div class="puzzle" id="goalPuzzle">
+                            <!-- Goal puzzle tiles will be added here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Display -->
+                <div id="messageArea"></div>
+
+                <!-- Information Panel -->
+                <div class="info-panel">
+                    <h3>Step Information</h3>
+                    <div class="info-content" id="infoContent">
+                        Welcome to the 8-Puzzle Solver! Use the controls to move tiles or run algorithms.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Puzzle state and game variables
+        let state = [1, 2, 3, 4, 5, 0, 6, 7, 8]; // Changed to a solvable state
+        const goal = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+        let history = [{ step: 0, action: 'Initial State', state: [...state], visitedCount: 0 }];
+        let currentStep = 0;
+        let algorithmHistory = [];
+        let runningAlgorithm = null;
+
+        // Utility functions
+        function manhattanDistance(state, goal) {
+            let distance = 0;
+            for (let i = 0; i < state.length; i++) {
+                if (state[i] === 0) continue;
+                const goalIndex = goal.indexOf(state[i]);
+                const x1 = Math.floor(i / 3), y1 = i % 3;
+                const x2 = Math.floor(goalIndex / 3), y2 = goalIndex % 3;
+                distance += Math.abs(x1 - x2) + Math.abs(y1 - y2);
+            }
+            return distance;
+        }
+
+        function getNeighbors(currentState) {
+            const neighbors = [];
+            const blankIndex = currentState.indexOf(0);
+            const x = Math.floor(blankIndex / 3);
+            const y = blankIndex % 3;
+            
+            const moves = [
+                { direction: 'up', dx: -1, dy: 0 },
+                { direction: 'down', dx: 1, dy: 0 },
+                { direction: 'left', dx: 0, dy: -1 },
+                { direction: 'right', dx: 0, dy: 1 }
+            ];
+            
+            for (const move of moves) {
+                const newX = x + move.dx;
+                const newY = y + move.dy;
+                
+                if (newX >= 0 && newX < 3 && newY >= 0 && newY < 3) {
+                    const newIndex = newX * 3 + newY;
+                    const newState = [...currentState];
+                    [newState[blankIndex], newState[newIndex]] = [newState[newIndex], newState[blankIndex]];
+                    neighbors.push({ direction: move.direction, state: newState });
+                }
+            }
+            
+            return neighbors;
+        }
+
+        // Check if puzzle is solvable
+        function isSolvable(state, goal) {
+            // For 8-puzzle, a state is solvable if the number of inversions is even
+            let inversions = 0;
+            const flatState = state.filter(tile => tile !== 0);
+            const flatGoal = goal.filter(tile => tile !== 0);
+            
+            for (let i = 0; i < flatState.length; i++) {
+                for (let j = i + 1; j < flatState.length; j++) {
+                    if (flatState[i] > flatState[j]) {
+                        inversions++;
+                    }
+                }
+            }
+            
+            return inversions % 2 === 0;
+        }
+
+        // Initialize the puzzle
+        function initPuzzle() {
+            renderPuzzle('currentPuzzle', state);
+            renderPuzzle('goalPuzzle', goal);
+            updateHistory();
+            updateInfo();
+        }
+
+        // Render puzzle on the screen
+        function renderPuzzle(elementId, puzzleState) {
+            const puzzleElement = document.getElementById(elementId);
+            puzzleElement.innerHTML = '';
+            
+            puzzleState.forEach((value, index) => {
+                const tile = document.createElement('div');
+                tile.className = value === 0 ? 'tile empty' : 'tile';
+                tile.textContent = value === 0 ? '' : value;
+                tile.onclick = () => handleTileClick(value);
+                puzzleElement.appendChild(tile);
+            });
+        }
+
+        // Handle tile click for manual movement
+        function handleTileClick(tileValue) {
+            if (runningAlgorithm || tileValue === 0) return;
+            
+            const blankIndex = state.indexOf(0);
+            const tileIndex = state.indexOf(tileValue);
+            const blankRow = Math.floor(blankIndex / 3);
+            const blankCol = blankIndex % 3;
+            const tileRow = Math.floor(tileIndex / 3);
+            const tileCol = tileIndex % 3;
+            
+            // Check if the clicked tile is adjacent to the blank
+            if ((Math.abs(blankRow - tileRow) === 1 && blankCol === tileCol) || 
+                (Math.abs(blankCol - tileCol) === 1 && blankRow === tileRow)) {
+                // Move the tile
+                const newState = [...state];
+                newState[blankIndex] = tileValue;
+                newState[tileIndex] = 0;
+                state = newState;
+                
+                addToHistory(`Moved ${tileValue}`);
+                updateDisplay();
+            } else {
+                showMessage('Can only move tiles adjacent to the empty space!', 'error');
+            }
+        }
+
+        // Move tile using direction buttons
+        function moveTile(direction) {
+            if (runningAlgorithm) return;
+            
+            const blankIndex = state.indexOf(0);
+            let targetIndex = -1;
+            
+            switch(direction) {
+                case 'up':
+                    if (blankIndex >= 3) targetIndex = blankIndex - 3;
+                    break;
+                case 'down':
+                    if (blankIndex < 6) targetIndex = blankIndex + 3;
+                    break;
+                case 'left':
+                    if (blankIndex % 3 !== 0) targetIndex = blankIndex - 1;
+                    break;
+                case 'right':
+                    if (blankIndex % 3 !== 2) targetIndex = blankIndex + 1;
+                    break;
+            }
+            
+            if (targetIndex !== -1) {
+                const tileValue = state[targetIndex];
+                const newState = [...state];
+                newState[blankIndex] = tileValue;
+                newState[targetIndex] = 0;
+                state = newState;
+                
+                addToHistory(`Move ${direction}`);
+                updateDisplay();
+            } else {
+                showMessage(`Cannot move ${direction}!`, 'error');
+            }
+        }
+
+        // Add move to history
+        function addToHistory(action) {
+            history.push({
+                step: history.length,
+                action: action,
+                state: [...state],
+                visitedCount: 0
+            });
+            currentStep = history.length - 1;
+        }
+
+        // Update history display
+        function updateHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            const displayHistory = runningAlgorithm ? algorithmHistory : history;
+            
+            displayHistory.forEach((item, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = `history-item ${index === currentStep ? 'active' : ''}`;
+                historyItem.textContent = `Step ${item.step}: ${item.action}`;
+                historyItem.onclick = () => jumpToStep(index);
+                historyList.appendChild(historyItem);
+            });
+            
+            // Scroll to current step
+            if (historyList.children[currentStep]) {
+                historyList.children[currentStep].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        // Jump to specific step in history
+        function jumpToStep(stepIndex) {
+            if (runningAlgorithm) {
+                if (stepIndex < algorithmHistory.length) {
+                    currentStep = stepIndex;
+                    state = [...algorithmHistory[stepIndex].state];
+                }
+            } else {
+                if (stepIndex < history.length) {
+                    currentStep = stepIndex;
+                    state = [...history[stepIndex].state];
+                }
+            }
+            updateDisplay();
+        }
+
+        // Update information panel
+        function updateInfo() {
+            const infoContent = document.getElementById('infoContent');
+            
+            if (runningAlgorithm && algorithmHistory[currentStep]) {
+                const step = algorithmHistory[currentStep];
+                let info = `Step: ${step.step}\n`;
+                info += `Action: ${step.action}\n`;
+                
+                if (step.fValue !== undefined) {
+                    info += `f-value: ${step.fValue}\n`;
+                    info += `g-value: ${step.gValue}\n`;
+                }
+                
+                if (step.queueLength !== undefined) {
+                    info += `Queue length: ${step.queueLength}\n`;
+                }
+                
+                if (step.openListSize !== undefined) {
+                    info += `Open list size: ${step.openListSize}\n`;
+                }
+                
+                info += `Visited states: ${step.visitedCount}\n`;
+                
+                if (step.path) {
+                    info += `\nSolution found in ${step.moves} moves!\n`;
+                    info += `Path: ${step.path.join(' → ')}`;
+                }
+                
+                infoContent.innerHTML = info.replace(/\n/g, '<br>');
+            } else {
+                const currentHistory = runningAlgorithm ? algorithmHistory : history;
+                const step = currentHistory[currentStep] || history[0];
+                let info = `Step: ${step.step}\n`;
+                info += `Action: ${step.action}\n`;
+                info += `\nManual Mode\n`;
+                info += `Use arrow buttons or click tiles to move.\n`;
+                info += `Click on algorithm buttons to solve automatically.`;
+                infoContent.innerHTML = info.replace(/\n/g, '<br>');
+            }
+        }
+
+        // Show message
+        function showMessage(message, type = 'error') {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `<div class="message ${type}">${message}</div>`;
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 3000);
+        }
+
+        // Update entire display
+        function updateDisplay() {
+            renderPuzzle('currentPuzzle', state);
+            updateHistory();
+            updateInfo();
+        }
+
+        // Reset puzzle to initial state
+        function resetPuzzle() {
+            state = [1, 2, 3, 4, 5, 0, 6, 7, 8]; // Solvable state
+            history = [{ step: 0, action: 'Initial State', state: [...state], visitedCount: 0 }];
+            currentStep = 0;
+            algorithmHistory = [];
+            runningAlgorithm = null;
+            updateDisplay();
+            showMessage('Puzzle reset to initial state', 'success');
+        }
+
+        // Navigation functions
+        function previousStep() {
+            if (runningAlgorithm && currentStep > 0) {
+                currentStep--;
+                state = [...algorithmHistory[currentStep].state];
+                updateDisplay();
+            } else if (!runningAlgorithm && currentStep > 0) {
+                currentStep--;
+                state = [...history[currentStep].state];
+                updateDisplay();
+            }
+        }
+
+        function nextStep() {
+            if (runningAlgorithm && currentStep < algorithmHistory.length - 1) {
+                currentStep++;
+                state = [...algorithmHistory[currentStep].state];
+                updateDisplay();
+            } else if (!runningAlgorithm && currentStep < history.length - 1) {
+                currentStep++;
+                state = [...history[currentStep].state];
+                updateDisplay();
+            }
+        }
+
+        // Algorithm implementations - FIXED VERSION
+        function runBFS() {
+            if (!isSolvable(state, goal)) {
+                showMessage('This puzzle state is not solvable! Try a different arrangement.', 'error');
+                return;
+            }
+
+            showMessage('Running BFS algorithm...', 'success');
+            
+            algorithmHistory = [];
+            const queue = [{ state: [...state], path: [] }];
+            const visited = new Set();
+            let step = 0;
+            
+            // Add initial state
+            algorithmHistory.push({
+                step: step++,
+                action: 'Start',
+                state: [...state],
+                queueLength: queue.length,
+                visitedCount: visited.size
+            });
+
+            while (queue.length > 0 && step < 500) { // Safety limit
+                const current = queue.shift();
+                const currentStateStr = current.state.toString();
+                
+                if (visited.has(currentStateStr)) continue;
+                
+                visited.add(currentStateStr);
+                
+                // Update current state in history
+                if (step > 1) { // Don't add start state twice
+                    algorithmHistory.push({
+                        step: step - 1,
+                        action: `Exploring...`,
+                        state: [...current.state],
+                        queueLength: queue.length,
+                        visitedCount: visited.size
+                    });
+                }
+
+                // Check if goal is reached
+                if (current.state.toString() === goal.toString()) {
+                    algorithmHistory.push({
+                        step: step,
+                        action: 'GOAL REACHED!',
+                        state: [...current.state],
+                        queueLength: queue.length,
+                        visitedCount: visited.size,
+                        path: current.path,
+                        moves: current.path.length
+                    });
+                    runningAlgorithm = 'BFS';
+                    currentStep = algorithmHistory.length - 1;
+                    updateDisplay();
+                    showMessage(`Solution found in ${current.path.length} moves!`, 'success');
+                    return;
+                }
+
+                // Explore neighbors
+                const neighbors = getNeighbors(current.state);
+                for (const neighbor of neighbors) {
+                    const neighborStr = neighbor.state.toString();
+                    if (!visited.has(neighborStr)) {
+                        queue.push({
+                            state: neighbor.state,
+                            path: [...current.path, neighbor.direction]
+                        });
+                    }
+                }
+
+                // Add exploration step
+                algorithmHistory.push({
+                    step: step++,
+                    action: `Checking ${visited.size} states...`,
+                    state: [...current.state],
+                    queueLength: queue.length,
+                    visitedCount: visited.size
+                });
+            }
+
+            algorithmHistory.push({
+                step: step,
+                action: 'Search completed',
+                state: [...state],
+                queueLength: queue.length,
+                visitedCount: visited.size
+            });
+            
+            runningAlgorithm = 'BFS';
+            currentStep = algorithmHistory.length - 1;
+            updateDisplay();
+            showMessage('Goal state not found within search limit', 'error');
+        }
+
+        function runAStar() {
+            if (!isSolvable(state, goal)) {
+                showMessage('This puzzle state is not solvable! Try a different arrangement.', 'error');
+                return;
+            }
+
+            showMessage('Running A* algorithm...', 'success');
+            
+            algorithmHistory = [];
+            const openSet = [{ 
+                state: [...state], 
+                path: [], 
+                g: 0, 
+                f: manhattanDistance(state, goal),
+                parent: null
+            }];
+            const visited = new Set();
+            let step = 0;
+            
+            // Add initial state
+            algorithmHistory.push({
+                step: step++,
+                action: 'Start',
+                state: [...state],
+                fValue: manhattanDistance(state, goal),
+                gValue: 0,
+                openListSize: openSet.length,
+                visitedCount: visited.size
+            });
+
+            while (openSet.length > 0 && step < 500) {
+                // Find node with lowest f score
+                let lowestIndex = 0;
+                for (let i = 1; i < openSet.length; i++) {
+                    if (openSet[i].f < openSet[lowestIndex].f) {
+                        lowestIndex = i;
+                    }
+                }
+                
+                const current = openSet.splice(lowestIndex, 1)[0];
+                const currentStateStr = current.state.toString();
+                
+                if (visited.has(currentStateStr)) continue;
+                visited.add(currentStateStr);
+
+                // Add to history
+                if (step > 1) {
+                    algorithmHistory.push({
+                        step: step - 1,
+                        action: `Exploring (f=${current.f})`,
+                        state: [...current.state],
+                        fValue: current.f,
+                        gValue: current.g,
+                        openListSize: openSet.length,
+                        visitedCount: visited.size
+                    });
+                }
+
+                // Check for goal
+                if (current.state.toString() === goal.toString()) {
+                    algorithmHistory.push({
+                        step: step,
+                        action: 'GOAL REACHED!',
+                        state: [...current.state],
+                        fValue: current.f,
+                        gValue: current.g,
+                        openListSize: openSet.length,
+                        visitedCount: visited.size,
+                        path: current.path,
+                        moves: current.path.length
+                    });
+                    runningAlgorithm = 'A*';
+                    currentStep = algorithmHistory.length - 1;
+                    updateDisplay();
+                    showMessage(`Optimal solution found in ${current.path.length} moves!`, 'success');
+                    return;
+                }
+
+                // Explore neighbors
+                const neighbors = getNeighbors(current.state);
+                for (const neighbor of neighbors) {
+                    const neighborStr = neighbor.state.toString();
+                    if (!visited.has(neighborStr)) {
+                        const gNew = current.g + 1;
+                        const fNew = gNew + manhattanDistance(neighbor.state, goal);
+                        
+                        openSet.push({
+                            state: neighbor.state,
+                            path: [...current.path, neighbor.direction],
+                            g: gNew,
+                            f: fNew,
+                            parent: current
+                        });
+                    }
+                }
+
+                // Add progress update
+                algorithmHistory.push({
+                    step: step++,
+                    action: `Evaluating paths...`,
+                    state: [...current.state],
+                    fValue: current.f,
+                    gValue: current.g,
+                    openListSize: openSet.length,
+                    visitedCount: visited.size
+                });
+            }
+
+            algorithmHistory.push({
+                step: step,
+                action: 'Search completed',
+                state: [...state],
+                openListSize: openSet.length,
+                visitedCount: visited.size
+            });
+            
+            runningAlgorithm = 'A*';
+            currentStep = algorithmHistory.length - 1;
+            updateDisplay();
+            showMessage('Goal state not found within search limit', 'error');
+        }
+
+        // Initialize the application
+        window.onload = initPuzzle;
+    </script>
+</body>
+</html>

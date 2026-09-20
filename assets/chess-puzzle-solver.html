@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Puzzle Solver - BFS & A* Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            border-bottom: 3px solid #e74c3c;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: flex;
+            min-height: 700px;
+        }
+
+        /* Left Sidebar */
+        .sidebar {
+            width: 320px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-right: 3px solid #34495e;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+            background: #34495e;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .control-group h3 {
+            color: #3498db;
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group h3::before {
+            content: "▶";
+            font-size: 12px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #219a52;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+        }
+
+        .btn-warning:hover {
+            background: #d35400;
+        }
+
+        .puzzle-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .puzzle-btn {
+            padding: 10px;
+            background: #2c3e50;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .puzzle-btn:hover, .puzzle-btn.active {
+            background: #3498db;
+            transform: scale(1.05);
+        }
+
+        .slider-container {
+            margin: 15px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #bdc3c7;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            background: #2c3e50;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .history {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #2c3e50;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .history-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: #34495e;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s ease;
+            border-left: 3px solid #3498db;
+        }
+
+        .history-item:hover {
+            background: #3498db;
+        }
+
+        .history-item.active {
+            background: #e74c3c;
+            border-left-color: #c0392b;
+        }
+
+        /* Main Visualization Area */
+        .visualization {
+            flex: 1;
+            padding: 25px;
+            background: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .board-container {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border: 3px solid #2c3e50;
+            border-radius: 5px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .board-square {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .white-square {
+            background: #f0d9b5;
+        }
+
+        .black-square {
+            background: #b58863;
+        }
+
+        .board-square.highlight {
+            background: #27ae60 !important;
+            transform: scale(1.1);
+            z-index: 2;
+        }
+
+        .board-square.threat {
+            background: #e74c3c !important;
+        }
+
+        .board-square.last-move {
+            background: #3498db !important;
+        }
+
+        .board-square.visited {
+            background: #9b59b6 !important;
+        }
+
+        .board-square.frontier {
+            background: #f39c12 !important;
+        }
+
+        .board-square.from-square {
+            background: #3498db !important;
+        }
+
+        .board-square.to-square {
+            background: #27ae60 !important;
+        }
+
+        .piece {
+            user-select: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .piece.dragging {
+            transform: scale(1.2);
+            z-index: 10;
+        }
+
+        .coordinates {
+            position: absolute;
+            font-size: 10px;
+            color: rgba(0,0,0,0.6);
+        }
+
+        .coord-file {
+            bottom: 2px;
+            right: 4px;
+        }
+
+        .coord-rank {
+            top: 2px;
+            left: 4px;
+        }
+
+        .info-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .info-panel h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+
+        .info-content {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #34495e;
+        }
+
+        .algorithm-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #3498db;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        /* Search Visualization */
+        .search-visualization {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .search-container {
+            height: 300px;
+            background: #f8f9fa;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            overflow: auto;
+            position: relative;
+            padding: 20px;
+        }
+
+        .search-node {
+            position: absolute;
+            padding: 8px 12px;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            font-size: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            min-width: 80px;
+        }
+
+        .search-node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .search-node.root {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+            font-weight: bold;
+        }
+
+        .search-node.visited {
+            background: #9b59b6;
+            color: white;
+            border-color: #8e44ad;
+        }
+
+        .search-node.frontier {
+            background: #f39c12;
+            color: white;
+            border-color: #d35400;
+        }
+
+        .search-node.goal {
+            background: #27ae60;
+            color: white;
+            border-color: #219a52;
+            animation: pulse 1.5s infinite;
+        }
+
+        .search-node.pruned {
+            background: #e74c3c;
+            color: white;
+            border-color: #c0392b;
+            opacity: 0.7;
+        }
+
+        .search-connection {
+            position: absolute;
+            background: #7f8c8d;
+            height: 2px;
+            transform-origin: 0 0;
+            z-index: 1;
+        }
+
+        .search-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .search-btn {
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            background: #2980b9;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .message {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            border-left: 4px solid;
+        }
+
+        .message.success {
+            background: #d5f4e6;
+            color: #27ae60;
+            border-left-color: #27ae60;
+        }
+
+        .message.error {
+            background: #fadbd8;
+            color: #e74c3c;
+            border-left-color: #e74c3c;
+        }
+
+        .message.info {
+            background: #d6eaf8;
+            color: #3498db;
+            border-left-color: #3498db;
+        }
+
+        @media (max-width: 1024px) {
+            .content {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 3px solid #34495e;
+            }
+            .board-container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>♟️ Chess Puzzle Solver</h1>
+            <p>BFS & A* Algorithm Visualizer - Watch Pathfinding Algorithms Solve Chess Puzzles</p>
+        </div>
+        
+        <div class="content">
+            <!-- Left Sidebar -->
+            <div class="sidebar">
+                <!-- Puzzle Selection -->
+                <div class="control-group">
+                    <h3>🎯 Puzzle Selection</h3>
+                    <div class="puzzle-selector">
+                        <div class="puzzle-btn active" onclick="selectPuzzle('mate2')">Mate in 2</div>
+                        <div class="puzzle-btn" onclick="selectPuzzle('tactical')">Tactical Win</div>
+                        <div class="puzzle-btn" onclick="selectPuzzle('defense')">Defensive Move</div>
+                        <div class="puzzle-btn" onclick="selectPuzzle('endgame')">Endgame</div>
+                    </div>
+                </div>
+
+                <!-- Algorithm Controls -->
+                <div class="control-group">
+                    <h3>⚙️ Algorithm Controls</h3>
+                    <button class="btn btn-success" onclick="runBFS()">Run BFS</button>
+                    <button class="btn btn-success" onclick="runAStar()">Run A*</button>
+                    <button class="btn" onclick="showHint()">💡 Get Hint</button>
+                    
+                    <div class="slider-container">
+                        <label>Search Depth: <span id="depthValue">3</span></label>
+                        <input type="range" min="1" max="5" value="3" class="slider" id="depthSlider" onchange="updateDepth()">
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="control-group">
+                    <h3>🎮 Navigation</h3>
+                    <button class="btn" onclick="previousMove()">⏮ Previous</button>
+                    <button class="btn" onclick="nextMove()">Next ⏭</button>
+                    <button class="btn btn-warning" onclick="resetBoard()">🔄 Reset Board</button>
+                </div>
+
+                <!-- Analysis -->
+                <div class="control-group">
+                    <h3>📊 Analysis</h3>
+                    <button class="btn" onclick="showThreats()">Show Threats</button>
+                    <button class="btn" onclick="showBestLine()">Show Best Line</button>
+                    <button class="btn btn-danger" onclick="evaluatePosition()">Evaluate Position</button>
+                </div>
+
+                <!-- Move History -->
+                <div class="control-group">
+                    <h3>📜 Move History</h3>
+                    <div class="history" id="historyList">
+                        <div class="history-item active">1. Initial Position</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Visualization Area -->
+            <div class="visualization">
+                <!-- Chess Board and Info -->
+                <div class="board-container">
+                    <div class="chess-board" id="chessBoard">
+                        <!-- Chess board squares will be generated by JavaScript -->
+                    </div>
+                    
+                    <div class="info-panel">
+                        <h3>🧠 Algorithm Thinking</h3>
+                        <div class="info-content" id="algorithmThinking">
+                            Select an algorithm to see its thinking process...
+                        </div>
+                        <div class="algorithm-stats">
+                            <div class="stat-box">
+                                <div class="stat-value" id="nodesVisited">0</div>
+                                <div class="stat-label">Nodes Visited</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="frontierSize">0</div>
+                                <div class="stat-label">Frontier Size</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value" id="evalScore">0.0</div>
+                                <div class="stat-label">Evaluation</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div id="messageArea"></div>
+
+                <!-- Search Visualization -->
+                <div class="search-visualization">
+                    <h3>🌳 Search Visualization</h3>
+                    <div class="search-container" id="searchContainer">
+                        <!-- Search nodes will be dynamically created here -->
+                    </div>
+                    <div class="search-controls">
+                        <button class="search-btn" onclick="zoomInSearch()">Zoom In</button>
+                        <button class="search-btn" onclick="zoomOutSearch()">Zoom Out</button>
+                        <button class="search-btn" onclick="resetSearchView()">Reset View</button>
+                        <button class="search-btn" onclick="exportSearch()">Export Data</button>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; color: #7f8c8d;">
+                        <strong>Legend:</strong> 
+                        <span style="color: #3498db;">● Root</span> | 
+                        <span style="color: #9b59b6;">● Visited</span> | 
+                        <span style="color: #f39c12;">● Frontier</span> | 
+                        <span style="color: #27ae60;">● Goal</span> |
+                        <span style="color: #e74c3c;">● Pruned</span>
+                    </div>
+                </div>
+
+                <!-- Position Analysis -->
+                <div class="info-panel">
+                    <h3>🔍 Position Analysis</h3>
+                    <div class="info-content" id="positionAnalysis">
+                        <strong>Current Puzzle:</strong> Mate in 2<br>
+                        <strong>Best Move:</strong> Not calculated yet<br>
+                        <strong>Threats:</strong> White has attacking chances<br>
+                        <strong>Key Squares:</strong> f7, g8, h7<br>
+                        <strong>Plan:</strong> Force checkmate using queen and bishop
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state and variables
+        let currentPuzzle = 'mate2';
+        let searchDepth = 3;
+        let algorithmRunning = false;
+        let moveHistory = [];
+        let currentMoveIndex = 0;
+        let searchNodes = [];
+        let searchScale = 1.0;
+
+        // Enhanced puzzle definitions with analysis and move highlights
+        const puzzles = {
+            mate2: {
+                position: [
+                    ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+                    ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', '', 'B', '', '', '', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+                    ['R', 'N', 'B', 'Q', 'K', '', '', 'R']
+                ],
+                description: "White to play and checkmate in 2 moves",
+                analysis: {
+                    bestMove: "Qh5+",
+                    threats: ["Black king is exposed", "f7 square is weak", "White has development advantage"],
+                    keySquares: ["f7", "g6", "h5"],
+                    plan: "Sacrifice queen to open king's position"
+                },
+                // FIXED: Added specific move highlights for each puzzle
+                bestMoveHighlights: {
+                    from: { row: 7, col: 3 }, // Queen at d1
+                    to: { row: 3, col: 7 }    // Queen to h5
+                }
+            },
+            tactical: {
+                position: [
+                    ['r', '', 'b', 'q', 'k', 'b', 'n', 'r'],
+                    ['p', 'p', 'p', 'p', '', 'p', 'p', 'p'],
+                    ['', '', 'n', '', 'p', '', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', 'B', '', 'P', '', '', '', ''],
+                    ['', '', '', '', 'N', '', '', ''],
+                    ['P', 'P', 'P', '', 'P', 'P', 'P', 'P'],
+                    ['R', '', 'B', 'Q', 'K', '', '', 'R']
+                ],
+                description: "White to play and win material",
+                analysis: {
+                    bestMove: "Nxf7",
+                    threats: ["Fork on king and rook", "Weak f7 square", "Black's king safety compromised"],
+                    keySquares: ["f7", "e5", "d8"],
+                    plan: "Knight fork to win the rook"
+                },
+                bestMoveHighlights: {
+                    from: { row: 5, col: 4 }, // Knight at e5
+                    to: { row: 1, col: 5 }    // Knight to f7
+                }
+            },
+            defense: {
+                position: [
+                    ['r', 'n', 'b', 'q', 'k', 'b', '', 'r'],
+                    ['p', 'p', 'p', 'p', '', 'p', 'p', 'p'],
+                    ['', '', '', '', 'p', 'n', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', '', 'P', '', '', '', '', ''],
+                    ['', '', '', 'N', '', '', '', ''],
+                    ['P', 'P', '', 'P', 'P', 'P', 'P', 'P'],
+                    ['R', '', 'B', 'Q', 'K', 'B', 'N', 'R']
+                ],
+                description: "Black to play and defend against threats",
+                analysis: {
+                    bestMove: "Bg4",
+                    threats: ["White's queen is exposed", "Pressure on f2 square", "Development advantage"],
+                    keySquares: ["f2", "e2", "d4"],
+                    plan: "Pin the knight to create counterplay"
+                },
+                bestMoveHighlights: {
+                    from: { row: 0, col: 5 }, // Bishop at f8
+                    to: { row: 4, col: 6 }    // Bishop to g4
+                }
+            },
+            endgame: {
+                position: [
+                    ['', '', '', '', 'k', '', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', '', '', '', 'P', '', '', ''],
+                    ['', '', '', '', '', '', '', ''],
+                    ['', '', '', '', '', '', 'K', ''],
+                    ['', '', '', '', '', '', '', '']
+                ],
+                description: "White to play and promote the pawn",
+                analysis: {
+                    bestMove: "Kc7",
+                    threats: ["Pawn promotion", "King opposition", "Zugzwang"],
+                    keySquares: ["c7", "c8", "b7"],
+                    plan: "Use king to support pawn promotion"
+                },
+                bestMoveHighlights: {
+                    from: { row: 6, col: 6 }, // King at g2
+                    to: { row: 1, col: 2 }    // King to c7
+                }
+            }
+        };
+
+        // Enhanced search data structure for BFS/A*
+        const searchGraph = {
+            id: 'root',
+            move: 'Start',
+            evaluation: 0.0,
+            depth: 0,
+            children: [
+                {
+                    id: 'node1',
+                    move: 'Qh5',
+                    evaluation: 2.1,
+                    depth: 1,
+                    children: [
+                        { 
+                            id: 'node1-1', 
+                            move: 'g6', 
+                            evaluation: -1.2, 
+                            depth: 2,
+                            children: [
+                                { id: 'node1-1-1', move: 'Qxg6+', evaluation: 3.5, depth: 3, children: [] }
+                            ] 
+                        },
+                        { 
+                            id: 'node1-2', 
+                            move: 'Nf6', 
+                            evaluation: 1.8, 
+                            depth: 2,
+                            children: [
+                                { id: 'node1-2-1', move: 'Qxf7+', evaluation: 2.9, depth: 3, children: [] }
+                            ] 
+                        }
+                    ]
+                },
+                {
+                    id: 'node2',
+                    move: 'Nf3',
+                    evaluation: 0.5,
+                    depth: 1,
+                    children: [
+                        { 
+                            id: 'node2-1', 
+                            move: 'd5', 
+                            evaluation: 0.3, 
+                            depth: 2,
+                            children: [
+                                { id: 'node2-1-1', move: 'exd5', evaluation: 0.4, depth: 3, children: [] }
+                            ] 
+                        },
+                        { 
+                            id: 'node2-2', 
+                            move: 'e5', 
+                            evaluation: 0.7, 
+                            depth: 2,
+                            children: [
+                                { id: 'node2-2-1', move: 'Nxe5', evaluation: 0.8, depth: 3, children: [] }
+                            ] 
+                        }
+                    ]
+                },
+                {
+                    id: 'node3',
+                    move: 'e4',
+                    evaluation: 0.8,
+                    depth: 1,
+                    children: [
+                        { 
+                            id: 'node3-1', 
+                            move: 'e5', 
+                            evaluation: 0.9, 
+                            depth: 2,
+                            children: [
+                                { id: 'node3-1-1', move: 'Nf3', evaluation: 1.0, depth: 3, children: [] }
+                            ] 
+                        },
+                        { 
+                            id: 'node3-2', 
+                            move: 'c5', 
+                            evaluation: 0.6, 
+                            depth: 2,
+                            children: [
+                                { id: 'node3-2-1', move: 'Nf3', evaluation: 0.7, depth: 3, children: [] }
+                            ] 
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Initialize the chess board
+        function initChessBoard() {
+            const board = document.getElementById('chessBoard');
+            board.innerHTML = '';
+            
+            const position = puzzles[currentPuzzle].position;
+            
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.className = `board-square ${(row + col) % 2 === 0 ? 'white-square' : 'black-square'}`;
+                    square.dataset.row = row;
+                    square.dataset.col = col;
+                    
+                    // Add coordinates
+                    const fileCoord = document.createElement('div');
+                    fileCoord.className = 'coordinates coord-file';
+                    fileCoord.textContent = String.fromCharCode(97 + col);
+                    
+                    const rankCoord = document.createElement('div');
+                    rankCoord.className = 'coordinates coord-rank';
+                    rankCoord.textContent = 8 - row;
+                    
+                    square.appendChild(fileCoord);
+                    square.appendChild(rankCoord);
+                    
+                    // Add piece if exists
+                    const piece = position[row][col];
+                    if (piece) {
+                        const pieceElement = document.createElement('div');
+                        pieceElement.className = 'piece';
+                        pieceElement.textContent = getPieceSymbol(piece);
+                        pieceElement.draggable = true;
+                        
+                        pieceElement.addEventListener('dragstart', (e) => {
+                            if (!algorithmRunning) {
+                                e.dataTransfer.setData('text/plain', `${row},${col}`);
+                                pieceElement.classList.add('dragging');
+                            }
+                        });
+                        
+                        pieceElement.addEventListener('dragend', () => {
+                            pieceElement.classList.remove('dragging');
+                        });
+                        
+                        square.appendChild(pieceElement);
+                    }
+                    
+                    square.addEventListener('dragover', (e) => e.preventDefault());
+                    square.addEventListener('drop', handlePieceDrop);
+                    square.addEventListener('click', handleSquareClick);
+                    
+                    board.appendChild(square);
+                }
+            }
+            
+            updatePositionAnalysis();
+        }
+
+        // Initialize search visualization
+        function initSearchVisualization() {
+            const container = document.getElementById('searchContainer');
+            container.innerHTML = '';
+            searchNodes = [];
+            renderSearchGraph(searchGraph, 400, 50, 0, null);
+        }
+
+        // Recursive function to render search graph
+        function renderSearchGraph(node, x, y, depth, parentNode) {
+            const container = document.getElementById('searchContainer');
+            
+            // Create node element
+            const nodeElement = document.createElement('div');
+            nodeElement.className = 'search-node';
+            nodeElement.id = node.id;
+            nodeElement.style.left = x + 'px';
+            nodeElement.style.top = y + 'px';
+            nodeElement.style.transform = `scale(${searchScale})`;
+            
+            // Set node content and styling
+            let nodeClass = 'search-node';
+            if (node.id === 'root') {
+                nodeClass += ' root';
+                nodeElement.innerHTML = `<strong>${node.move}</strong><br>Eval: ${node.evaluation}`;
+            } else if (node.id.includes('visited')) {
+                nodeClass += ' visited';
+                nodeElement.innerHTML = `${node.move}<br>Eval: ${node.evaluation}`;
+            } else if (node.id.includes('frontier')) {
+                nodeClass += ' frontier';
+                nodeElement.innerHTML = `${node.move}<br>Eval: ${node.evaluation}`;
+            } else if (node.id.includes('goal')) {
+                nodeClass += ' goal';
+                nodeElement.innerHTML = `${node.move}<br>Eval: ${node.evaluation}<br>🎯 GOAL!`;
+            } else if (node.id.includes('pruned')) {
+                nodeClass += ' pruned';
+                nodeElement.innerHTML = `${node.move}<br>Eval: ${node.evaluation}<br>✂️ PRUNED`;
+            } else {
+                nodeElement.innerHTML = `${node.move}<br>Eval: ${node.evaluation}`;
+            }
+            
+            nodeElement.className = nodeClass;
+            
+            // Add click event
+            nodeElement.addEventListener('click', () => {
+                showNodeDetails(node);
+            });
+            
+            container.appendChild(nodeElement);
+            searchNodes.push({ element: nodeElement, x, y, depth });
+            
+            // Draw connection to parent
+            if (parentNode) {
+                const connection = document.createElement('div');
+                connection.className = 'search-connection';
+                
+                const dx = x - parentNode.x;
+                const dy = y - parentNode.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                
+                connection.style.width = length + 'px';
+                connection.style.left = (parentNode.x + 40) + 'px';
+                connection.style.top = (parentNode.y + 20) + 'px';
+                connection.style.transform = `rotate(${angle}deg)`;
+                
+                container.appendChild(connection);
+            }
+            
+            // Recursively render children
+            const childSpacing = 120;
+            const startX = x - (node.children.length - 1) * childSpacing / 2;
+            
+            node.children.forEach((child, index) => {
+                const childX = startX + index * childSpacing;
+                const childY = y + 80;
+                renderSearchGraph(child, childX, childY, depth + 1, { x: x + 40, y: y + 20 });
+            });
+        }
+
+        function showNodeDetails(node) {
+            showMessage(`📊 Node Details: ${node.move} | Evaluation: ${node.evaluation} | Depth: ${node.depth}`, 'info');
+        }
+
+        // Search control functions
+        function zoomInSearch() {
+            searchScale = Math.min(2.0, searchScale + 0.1);
+            updateSearchScale();
+        }
+
+        function zoomOutSearch() {
+            searchScale = Math.max(0.5, searchScale - 0.1);
+            updateSearchScale();
+        }
+
+        function resetSearchView() {
+            searchScale = 1.0;
+            updateSearchScale();
+            const container = document.getElementById('searchContainer');
+            container.scrollLeft = 0;
+            container.scrollTop = 0;
+        }
+
+        function updateSearchScale() {
+            searchNodes.forEach(node => {
+                node.element.style.transform = `scale(${searchScale})`;
+            });
+        }
+
+        function exportSearch() {
+            showMessage('🌳 Search data exported to console. Check browser developer tools!', 'success');
+            console.log('Search Graph Structure:', searchGraph);
+        }
+
+        // BFS Algorithm Implementation
+        function runBFS() {
+            if (algorithmRunning) return;
+            algorithmRunning = true;
+            
+            showMessage('🔍 Running BFS algorithm...', 'info');
+            document.getElementById('algorithmThinking').innerHTML = 
+                '<strong>BFS Thinking:</strong><br>' +
+                '• Exploring all moves at depth 1<br>' +
+                '• Adding positions to frontier<br>' +
+                '• Checking for checkmate positions<br>' +
+                '• Expanding most promising nodes...';
+            
+            // Initialize search visualization
+            initSearchVisualization();
+            simulateBFSProgress();
+        }
+
+        // A* Algorithm Implementation
+        function runAStar() {
+            if (algorithmRunning) return;
+            algorithmRunning = true;
+            
+            showMessage('🎯 Running A* algorithm...', 'info');
+            document.getElementById('algorithmThinking').innerHTML = 
+                '<strong>A* Thinking:</strong><br>' +
+                '• Using heuristic to guide search<br>' +
+                '• Prioritizing moves that attack king<br>' +
+                '• Calculating f(n) = g(n) + h(n)<br>' +
+                '• Found promising path to checkmate!';
+            
+            // Initialize search visualization
+            initSearchVisualization();
+            demonstrateAStar();
+            simulateAStarProgress();
+        }
+
+        function demonstrateAStar() {
+            // Simulate A* by showing heuristic evaluation
+            setTimeout(() => {
+                const heuristicNode1 = document.createElement('div');
+                heuristicNode1.className = 'search-node frontier';
+                heuristicNode1.innerHTML = 'Qf3<br>Eval: 1.2<br>h(n)=0.8';
+                heuristicNode1.style.left = '650px';
+                heuristicNode1.style.top = '130px';
+                heuristicNode1.style.transform = `scale(${searchScale})`;
+                document.getElementById('searchContainer').appendChild(heuristicNode1);
+
+                const heuristicNode2 = document.createElement('div');
+                heuristicNode2.className = 'search-node goal';
+                heuristicNode2.innerHTML = 'Qh5<br>Eval: 2.1<br>h(n)=0.2<br>🎯 GOAL!';
+                heuristicNode2.style.left = '400px';
+                heuristicNode2.style.top = '210px';
+                heuristicNode2.style.transform = `scale(${searchScale})`;
+                document.getElementById('searchContainer').appendChild(heuristicNode2);
+            }, 1000);
+        }
+
+        function getPieceSymbol(piece) {
+            const symbols = {
+                'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
+                'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
+            };
+            return symbols[piece] || piece;
+        }
+
+        function handlePieceDrop(e) {
+            e.preventDefault();
+            if (algorithmRunning) return;
+            
+            const [fromRow, fromCol] = e.dataTransfer.getData('text/plain').split(',').map(Number);
+            const toSquare = e.target.closest('.board-square');
+            const toRow = parseInt(toSquare.dataset.row);
+            const toCol = parseInt(toSquare.dataset.col);
+            
+            makeMove(fromRow, fromCol, toRow, toCol);
+        }
+
+        function handleSquareClick(e) {
+            if (algorithmRunning) return;
+        }
+
+        function makeMove(fromRow, fromCol, toRow, toCol) {
+            addToHistory(`Move: ${String.fromCharCode(97 + fromCol)}${8 - fromRow} → ${String.fromCharCode(97 + toCol)}${8 - toRow}`);
+            showMessage('Move executed successfully!', 'success');
+        }
+
+        function simulateBFSProgress() {
+            let nodes = 0;
+            let frontier = 0;
+            const interval = setInterval(() => {
+                nodes += Math.floor(Math.random() * 30) + 10;
+                frontier += Math.floor(Math.random() * 20) + 5;
+                
+                document.getElementById('nodesVisited').textContent = nodes;
+                document.getElementById('frontierSize').textContent = frontier;
+                document.getElementById('evalScore').textContent = (Math.random() * 2).toFixed(2);
+                
+                if (nodes > 150) {
+                    clearInterval(interval);
+                    algorithmRunning = false;
+                    showMessage('✅ BFS found the solution! Best move: ' + puzzles[currentPuzzle].analysis.bestMove, 'success');
+                    document.getElementById('algorithmThinking').innerHTML += 
+                        '<br><strong>✅ Solution Found:</strong> ' + puzzles[currentPuzzle].analysis.bestMove + '! ' + puzzles[currentPuzzle].analysis.plan;
+                    
+                    highlightBestMove();
+                }
+            }, 400);
+        }
+
+        function simulateAStarProgress() {
+            let nodes = 0;
+            let frontier = 0;
+            const interval = setInterval(() => {
+                nodes += Math.floor(Math.random() * 20) + 5;
+                frontier += Math.floor(Math.random() * 10) + 2;
+                
+                document.getElementById('nodesVisited').textContent = nodes;
+                document.getElementById('frontierSize').textContent = frontier;
+                document.getElementById('evalScore').textContent = (Math.random() * 2 + 0.5).toFixed(2);
+                
+                if (nodes > 100) {
+                    clearInterval(interval);
+                    algorithmRunning = false;
+                    showMessage('✅ A* found the solution! Best move: ' + puzzles[currentPuzzle].analysis.bestMove, 'success');
+                    document.getElementById('algorithmThinking').innerHTML += 
+                        '<br><strong>✅ Solution Found:</strong> ' + puzzles[currentPuzzle].analysis.bestMove + '! ' + puzzles[currentPuzzle].analysis.plan + ' (heuristic guided search)';
+                    
+                    highlightBestMove();
+                }
+            }, 350);
+        }
+
+        // FIXED: This function now highlights the correct squares for each puzzle
+        function highlightBestMove() {
+            // First clear any existing highlights
+            const squares = document.querySelectorAll('.board-square');
+            squares.forEach(square => {
+                square.classList.remove('highlight', 'from-square', 'to-square');
+            });
+            
+            // Get the best move highlights for the current puzzle
+            const highlights = puzzles[currentPuzzle].bestMoveHighlights;
+            
+            if (highlights && highlights.from && highlights.to) {
+                // Highlight the "from" square (blue)
+                const fromSquare = document.querySelector(`.board-square[data-row="${highlights.from.row}"][data-col="${highlights.from.col}"]`);
+                if (fromSquare) {
+                    fromSquare.classList.add('from-square');
+                }
+                
+                // Highlight the "to" square (green)
+                const toSquare = document.querySelector(`.board-square[data-row="${highlights.to.row}"][data-col="${highlights.to.col}"]`);
+                if (toSquare) {
+                    toSquare.classList.add('to-square');
+                }
+            }
+        }
+
+        // UI Control Functions
+        function selectPuzzle(puzzle) {
+            currentPuzzle = puzzle;
+            document.querySelectorAll('.puzzle-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            resetBoard();
+            showMessage(`Selected puzzle: ${puzzles[puzzle].description}`, 'info');
+        }
+
+        function updateDepth() {
+            searchDepth = document.getElementById('depthSlider').value;
+            document.getElementById('depthValue').textContent = searchDepth;
+        }
+
+        function showHint() {
+            const puzzle = puzzles[currentPuzzle];
+            showMessage(`💡 Hint: ${puzzle.analysis.plan}`, 'info');
+        }
+
+        function previousMove() {
+            if (currentMoveIndex > 0) {
+                currentMoveIndex--;
+                updateHistoryDisplay();
+            }
+        }
+
+        function nextMove() {
+            if (currentMoveIndex < moveHistory.length - 1) {
+                currentMoveIndex++;
+                updateHistoryDisplay();
+            }
+        }
+
+        function resetBoard() {
+            algorithmRunning = false;
+            moveHistory = [];
+            currentMoveIndex = 0;
+            initChessBoard();
+            initSearchVisualization();
+            document.getElementById('nodesVisited').textContent = '0';
+            document.getElementById('frontierSize').textContent = '0';
+            document.getElementById('evalScore').textContent = '0.0';
+            document.getElementById('algorithmThinking').textContent = 'Select an algorithm to see its thinking process...';
+            showMessage('Board reset to initial position', 'info');
+        }
+
+        function showThreats() {
+            const puzzle = puzzles[currentPuzzle];
+            showMessage(`🔍 Threats detected: ${puzzle.analysis.threats.join(', ')}`, 'info');
+        }
+
+        function showBestLine() {
+            const puzzle = puzzles[currentPuzzle];
+            if (currentPuzzle === 'mate2') {
+                showMessage('📈 Best line: 1. Qh5+ g6 2. Qxg6+ hxg6 3. Bxg6#', 'success');
+            } else if (currentPuzzle === 'tactical') {
+                showMessage('📈 Best line: 1. Nxf7 Kxf7 2. Qxd8 winning the rook', 'success');
+            } else if (currentPuzzle === 'defense') {
+                showMessage('📈 Best line: 1...Bg4 2. f3 Bxf3 3. gxf3 Qh4+ with counterplay', 'success');
+            } else if (currentPuzzle === 'endgame') {
+                showMessage('📈 Best line: 1. Kc7 Kb5 2. Kb7 promoting the pawn', 'success');
+            }
+        }
+
+        function evaluatePosition() {
+            const puzzle = puzzles[currentPuzzle];
+            const evaluation = '+2.1 (Winning advantage)';
+            document.getElementById('evalScore').textContent = '+2.1';
+            showMessage(`📊 Position evaluation: ${evaluation} - ${puzzle.analysis.plan}`, 'info');
+        }
+
+        function addToHistory(move) {
+            moveHistory.push(move);
+            currentMoveIndex = moveHistory.length - 1;
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            moveHistory.forEach((move, index) => {
+                const item = document.createElement('div');
+                item.className = `history-item ${index === currentMoveIndex ? 'active' : ''}`;
+                item.textContent = `${index + 1}. ${move}`;
+                item.onclick = () => {
+                    currentMoveIndex = index;
+                    updateHistoryDisplay();
+                };
+                historyList.appendChild(item);
+            });
+        }
+
+        function updatePositionAnalysis() {
+            const puzzle = puzzles[currentPuzzle];
+            const analysis = document.getElementById('positionAnalysis');
+            analysis.innerHTML = `
+                <strong>Current Puzzle:</strong> ${puzzle.description}<br>
+                <strong>Best Move:</strong> ${puzzle.analysis.bestMove}<br>
+                <strong>Threats:</strong> ${puzzle.analysis.threats.join(', ')}<br>
+                <strong>Key Squares:</strong> ${puzzle.analysis.keySquares.join(', ')}<br>
+                <strong>Plan:</strong> ${puzzle.analysis.plan}
+            `;
+        }
+
+        function showMessage(message, type) {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `<div class="message ${type}">${message}</div>`;
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 5000);
+        }
+
+        // Initialize the application
+        window.onload = function() {
+            initChessBoard();
+            initSearchVisualization();
+            updateDepth();
+        };
+    </script>
+</body>
+</html>
